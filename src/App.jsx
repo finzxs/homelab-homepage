@@ -1,48 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
-
-const SERVICES = [
-  {
-    id: 1,
-    name: "Nextcloud",
-    type: "Storage",
-    url: "https://nextcloud.local",
-    status: "online",
-    notes: "Main personal cloud",
-  },
-  {
-    id: 2,
-    name: "Navidrome",
-    type: "Media",
-    url: "https://music.local",
-    status: "online",
-    notes: "Music streaming",
-  },
-  {
-    id: 3,
-    name: "Router",
-    type: "Network",
-    url: "http://192.168.1.1",
-    status: "online",
-    notes: "ISP router login",
-  },
-  {
-    id: 4,
-    name: "Flint 2",
-    type: "Network",
-    url: "http://192.168.1.2",
-    status: "maintenance",
-    notes: "Main lab router",
-  },
-  {
-    id: 5,
-    name: "Pi-hole",
-    type: "DNS",
-    url: "http://pi-hole.local/admin",
-    status: "offline",
-    notes: "Ad-blocking DNS",
-  },
-];
 
 function statusClass(status) {
   if (status === "online") return "status-pill status-online";
@@ -52,29 +9,52 @@ function statusClass(status) {
 }
 
 function App() {
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
 
-  const filteredServices = SERVICES.filter((svc) => {
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        setLoadError(null);
+
+        const res = await fetch("/config/services.json");
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        setServices(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to load services.json", err);
+        setLoadError("Could not load services.json. Check the file path and JSON format.");
+        setServices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
+  const filteredServices = services.filter((svc) => {
     const matchesStatus =
       filter === "all" ? true : svc.status === filter;
 
-    const matchesSearch =
-      svc.name.toLowerCase().includes(search.toLowerCase()) ||
-      svc.type.toLowerCase().includes(search.toLowerCase()) ||
-      (svc.notes || "")
-        .toLowerCase()
-        .includes(search.toLowerCase());
+    const text = `${svc.name || ""} ${svc.type || ""} ${svc.notes || ""}`.toLowerCase();
+    const matchesSearch = text.includes(search.toLowerCase());
 
     return matchesStatus && matchesSearch;
   });
 
-  const total = SERVICES.length;
-  const online = SERVICES.filter((s) => s.status === "online").length;
-  const offline = SERVICES.filter((s) => s.status === "offline").length;
-  const maintenance = SERVICES.filter(
-    (s) => s.status === "maintenance"
-  ).length;
+  const total = services.length;
+  const online = services.filter((s) => s.status === "online").length;
+  const offline = services.filter((s) => s.status === "offline").length;
+  const maintenance = services.filter((s) => s.status === "maintenance").length;
 
   return (
     <div className="app">
@@ -82,11 +62,12 @@ function App() {
         <div>
           <h1>Homelab Dashboard</h1>
           <p className="subtitle">
-            Quick links & status for your lab services.
+            Quick links & status for lab
           </p>
         </div>
       </header>
 
+      {/* Top stats */}
       <section className="stats-row">
         <div className="stat-card">
           <span className="stat-label">Total</span>
@@ -106,6 +87,7 @@ function App() {
         </div>
       </section>
 
+      {/* Controls */}
       <section className="controls-row">
         <div className="search-wrapper">
           <input
@@ -152,43 +134,57 @@ function App() {
         </div>
       </section>
 
-      <main className="cards-grid">
-        {filteredServices.length === 0 ? (
-          <p className="empty-state">
-            No services match that filter/search.
-          </p>
-        ) : (
-          filteredServices.map((svc) => (
-            <article key={svc.id} className="service-card">
-              <header className="service-header">
-                <div>
-                  <h2>{svc.name}</h2>
-                  <p className="service-type">{svc.type}</p>
-                </div>
-                <span className={statusClass(svc.status)}>
-                  {svc.status}
-                </span>
-              </header>
+      {/* Loading / error states */}
+      {loading && (
+        <p className="empty-state">Loading services from services.json…</p>
+      )}
 
-              <div className="service-body">
-                <p className="service-notes">
-                  {svc.notes || "No notes."}
-                </p>
-                <p className="service-url">
-                  URL:{" "}
-                  {svc.url ? (
-                    <a href={svc.url} target="_blank" rel="noreferrer">
-                      {svc.url}
-                    </a>
-                  ) : (
-                    <span>Not set</span>
-                  )}
-                </p>
-              </div>
-            </article>
-          ))
-        )}
-      </main>
+      {loadError && !loading && (
+        <p className="empty-state">
+          {loadError}
+        </p>
+      )}
+
+      {/* Cards */}
+      {!loading && !loadError && (
+        <main className="cards-grid">
+          {filteredServices.length === 0 ? (
+            <p className="empty-state">
+              No services match that filter/search.
+            </p>
+          ) : (
+            filteredServices.map((svc) => (
+              <article key={svc.id} className="service-card">
+                <header className="service-header">
+                  <div>
+                    <h2>{svc.name}</h2>
+                    <p className="service-type">{svc.type}</p>
+                  </div>
+                  <span className={statusClass(svc.status)}>
+                    {svc.status}
+                  </span>
+                </header>
+
+                <div className="service-body">
+                  <p className="service-notes">
+                    {svc.notes || "No notes."}
+                  </p>
+                  <p className="service-url">
+                    URL:{" "}
+                    {svc.url ? (
+                      <a href={svc.url} target="_blank" rel="noreferrer">
+                        {svc.url}
+                      </a>
+                    ) : (
+                      <span>Not set</span>
+                    )}
+                  </p>
+                </div>
+              </article>
+            ))
+          )}
+        </main>
+      )}
 
       <footer className="app-footer">
         <span>Homelab · {new Date().getFullYear()}</span>

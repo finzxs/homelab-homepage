@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "Pi 5",
+    "type": "Server",
+    "url": "http://pi5.local:8080",
+    "status": "online",
+    "notes": "Nextcloud + Navidrome"
+  },
+  {
+    "id": 2,
+    "name": "Pop! OS Desktop",
+    "type": "Desktop",
+    "url": "http://192.168.1.30",
+    "status": "maintenance",
+    "notes": "Gaming / backups"
+  },
+  {
+    "id": 3,
+    "name": "Flint 2",
+    "type": "Network",
+    "url": "http://10.10.52.1",
+    "status": "online",
+    "notes": "Main lab router"
+  },
+   {
+    "id": 4,
+    "name": "Managed Switch",
+    "type": "Network",
+    "url": "http://192.168.1.1",
+    "status": "online",
+    "notes": "Switch management interface"
+  },
+  {
+    "id": 5,
+    "name": "Pi-hole",
+    "type": "DNS",
+    "url": "http://pi-hole.local/admin",
+    "status": "offline",
+    "notes": "Ad-blocking DNS"
+  }
+]
